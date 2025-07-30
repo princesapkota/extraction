@@ -1,0 +1,2 @@
+# extraction
+python| pandas| PostgreSQL
