@@ -47,7 +47,19 @@ def extract_voters_data(html_file, json_file):
     except Exception as e:
         print(f"An error occurred: {e}")
 
+
+
 if __name__ == '__main__':
+    # CHANGE 1: ADDED - Load election_data_full.json for location name mapping
+    # This loads the full election data to get human-readable names for location IDs
+    try:
+        with open('election_data_full.json', 'r', encoding='utf-8') as f:
+            election_data_full = json.load(f)
+        print(f"Loaded {len(election_data_full)} records from election_data_full.json")
+    except FileNotFoundError:
+        print("Warning: election_data_full.json not found. Proceeding without location names.")
+        election_data_full = []
+
     # ADDED: Load the location mapping from getlistofvoters.py
     with open('location_mapping.json', 'r') as f:
         location_data = json.load(f)
@@ -73,6 +85,26 @@ if __name__ == '__main__':
                 "ward": location_info["ward"],
                 "reg": location_info["reg_centre"]
             }
+            
+            # CHANGE 2: ADDED - Find matching record in election_data_full.json and add location names
+            # This matches the location IDs with the full data to get human-readable names
+            #mapping logic ->
+            if election_data_full:
+                for full_record in election_data_full:
+                    # Match all location IDs (convert to string for comparison)
+                    if (str(full_record.get('state', '')) == str(location['state']) and
+                        str(full_record.get('district', '')) == str(location['district']) and
+                        str(full_record.get('vdc', '')) == str(location['vdc']) and
+                        str(full_record.get('ward', '')) == str(location['ward']) and
+                        str(full_record.get('reg', '')) == str(location['reg'])):
+                        
+                        # Add the name fields from the matching record
+                        location['state_name'] = full_record.get('state_name', '')
+                        location['district_name'] = full_record.get('district_name', '')
+                        location['vdc_name'] = full_record.get('vdc_name', '')
+                        location['ward_name'] = full_record.get('ward_name', location['ward'])  # Fallback to ward number
+                        location['reg_name'] = full_record.get('reg_name', '')
+                        break  # Stop searching once we find a match
         else:
             location = {}
         
@@ -100,6 +132,8 @@ if __name__ == '__main__':
                     }
                     
                     # ADDED: Add the location data to each voter
+                    # CHANGE 3: NO MODIFICATION NEEDED HERE - This line now automatically includes both IDs and names
+                    # because we enhanced the 'location' dictionary above to include name fields
                     voter_info.update(location)
                     
                     all_voters_data.append(voter_info)
